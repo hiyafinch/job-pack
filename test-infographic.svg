@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg"
+     width="800" height="378"
+     font-family="Helvetica, Arial, sans-serif">
+
+  <!-- Background -->
+  <rect width="800" height="378" fill="#f0f4f8" rx="12"/>
+
+  <!-- Page title -->
+  <text x="400" y="38" font-size="20" font-weight="bold"
+        text-anchor="middle" fill="#1a202c">Company Fit Infographic</text>
+
+  <!-- Pros panel -->
+  <rect x="10" y="60" width="370" height="294"
+        fill="#d4edda" rx="8"/>
+  <text x="195" y="90" font-size="16" font-weight="bold"
+        text-anchor="middle" fill="#155724">Pros</text>
+  <text x="26" y="144" font-size="13" fill="#155724">✓  Competitive salary and equity package with a</text>
+  <text x="26" y="166" font-size="13" fill="#155724">    strong multi-year vesting schedule</text>
+  <text x="26" y="202" font-size="13" fill="#155724">✓  Fully remote culture with flexible hours and</text>
+  <text x="26" y="224" font-size="13" fill="#155724">    async-first communication norms</text>
+  <text x="26" y="260" font-size="13" fill="#155724">✓  Dedicated annual learning budget plus</text>
+  <text x="26" y="282" font-size="13" fill="#155724">    conference attendance reimbursement</text>
+  <text x="26" y="318" font-size="13" fill="#155724">✓  Small team with high ownership — engineers</text>
+  <text x="26" y="340" font-size="13" fill="#155724">    ship end-to-end features</text>
+
+  <!-- Cons panel -->
+  <rect x="390" y="60" width="370" height="294"
+        fill="#f8d7da" rx="8"/>
+  <text x="575" y="90" font-size="16" font-weight="bold"
+        text-anchor="middle" fill="#721c24">Cons</text>
+  <text x="406" y="144" font-size="13" fill="#721c24">✗  Early-stage startup with less than 18 months</text>
+  <text x="406" y="166" font-size="13" fill="#721c24">    of runway remaining at current burn</text>
+  <text x="406" y="202" font-size="13" fill="#721c24">✗  On-call rotation shared across only three</text>
+  <text x="406" y="224" font-size="13" fill="#721c24">    backend engineers every third week</text>
+  <text x="406" y="260" font-size="13" fill="#721c24">✗  No formal performance review process yet —</text>
+  <text x="406" y="282" font-size="13" fill="#721c24">    promotion criteria not documented</text>
+
+</svg>

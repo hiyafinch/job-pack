@@ -1,0 +1,133 @@
+import PDFDocument from 'pdfkit';
+
+// Parse a line into runs: [{text, bold}]
+// Handles **bold** spans within a line.
+function parseInline(line) {
+  const runs = [];
+  const re = /\*\*(.+?)\*\*/g;
+  let last = 0;
+  let match;
+  while ((match = re.exec(line)) !== null) {
+    if (match.index > last) runs.push({ text: line.slice(last, match.index), bold: false });
+    runs.push({ text: match[1], bold: true });
+    last = match.index + match[0].length;
+  }
+  if (last < line.length) runs.push({ text: line.slice(last), bold: false });
+  return runs;
+}
+
+function renderLine(doc, line) {
+  // ### Heading
+  if (/^###\s+/.test(line)) {
+    const heading = line.replace(/^###\s+/, '');
+    doc.moveDown(0.4)
+       .fontSize(13).font('Helvetica-Bold').fillColor('#1a202c')
+       .text(heading)
+       .fontSize(11).font('Helvetica').fillColor('#2d3748');
+    return;
+  }
+
+  // ## Heading
+  if (/^##\s+/.test(line)) {
+    const heading = line.replace(/^##\s+/, '');
+    doc.moveDown(0.5)
+       .fontSize(14).font('Helvetica-Bold').fillColor('#1a202c')
+       .text(heading)
+       .fontSize(11).font('Helvetica').fillColor('#2d3748');
+    return;
+  }
+
+  // # Heading
+  if (/^#\s+/.test(line)) {
+    const heading = line.replace(/^#\s+/, '');
+    doc.moveDown(0.6)
+       .fontSize(16).font('Helvetica-Bold').fillColor('#1a202c')
+       .text(heading)
+       .fontSize(11).font('Helvetica').fillColor('#2d3748');
+    return;
+  }
+
+  // --- horizontal rule
+  if (/^---+$/.test(line.trim())) {
+    const y = doc.y + 6;
+    doc.moveTo(doc.page.margins.left, y)
+       .lineTo(doc.page.width - doc.page.margins.right, y)
+       .strokeColor('#a0aec0').lineWidth(0.5).stroke()
+       .strokeColor('#000000').lineWidth(1);
+    doc.moveDown(0.4);
+    return;
+  }
+
+  // Bullet points: - item or * item
+  if (/^[-*]\s+/.test(line)) {
+    const content = line.replace(/^[-*]\s+/, '');
+    const runs = parseInline(content);
+    const indent = doc.page.margins.left + 14;
+    // Bullet dot
+    doc.fontSize(11).font('Helvetica').fillColor('#2d3748')
+       .text('•', doc.page.margins.left, doc.y, { continued: false, width: 12 });
+    const bulletY = doc.y - doc.currentLineHeight(true);
+    renderRuns(doc, runs, indent, bulletY, doc.page.width - indent - doc.page.margins.right);
+    return;
+  }
+
+  // Empty line
+  if (line.trim() === '') {
+    doc.moveDown(0.3);
+    return;
+  }
+
+  // Normal paragraph with possible inline bold
+  const runs = parseInline(line);
+  renderRuns(doc, runs, doc.page.margins.left, doc.y,
+    doc.page.width - doc.page.margins.left - doc.page.margins.right);
+}
+
+function renderRuns(doc, runs, x, y, width) {
+  if (runs.length === 0) return;
+
+  // Check if any run is bold — if mixed, use continued mode
+  const allPlain = runs.every(r => !r.bold);
+  if (allPlain) {
+    doc.fontSize(11).font('Helvetica').fillColor('#2d3748')
+       .text(runs.map(r => r.text).join(''), x, y, { width, lineGap: 3 });
+    return;
+  }
+
+  // Mixed: emit each run with continued=true except last
+  runs.forEach((run, i) => {
+    const isLast = i === runs.length - 1;
+    doc.fontSize(11)
+       .font(run.bold ? 'Helvetica-Bold' : 'Helvetica')
+       .fillColor('#2d3748')
+       .text(run.text, i === 0 ? x : undefined, i === 0 ? y : undefined, {
+         continued: !isLast,
+         width,
+         lineGap: 3,
+       });
+  });
+}
+
+export function generateResumePDF(text) {
+  return new Promise((resolve, reject) => {
+    const doc = new PDFDocument({ margin: 50, bufferPages: true });
+    const chunks = [];
+
+    doc.on('data', (chunk) => chunks.push(chunk));
+    doc.on('end', () => resolve(Buffer.concat(chunks)));
+    doc.on('error', reject);
+
+    // Page title
+    doc.fontSize(20).font('Helvetica-Bold').fillColor('#1a202c')
+       .text('Resume', { align: 'center' });
+    doc.moveDown(0.5);
+    doc.fontSize(11).font('Helvetica').fillColor('#2d3748');
+
+    const lines = text.split('\n');
+    for (const line of lines) {
+      renderLine(doc, line);
+    }
+
+    doc.end();
+  });
+}

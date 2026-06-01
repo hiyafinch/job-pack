@@ -1,0 +1,68 @@
+// Facade — single entry point for all job pack generation logic.
+// Hides LLM calls, pipeline stages, PDF generation, and DB persistence.
+
+import { pipeline, buildPrompt, callLLM, parseResponse } from './pipeline.js';
+import { generateResumePDF } from '../generators/resumePDF.js';
+import { generateCoverLetterPDF } from '../generators/coverLetterPDF.js';
+import { generateInfographic } from '../generators/infographic.js';
+import { createDraft, updateDraftArtifacts } from '../db/drafts.js';
+import { OllamaHostedAdapter } from '../adapters/OllamaHostedAdapter.js';
+import { OllamaLocalAdapter } from '../adapters/OllamaLocalAdapter.js';
+import { ClaudeApiAdapter } from '../adapters/ClaudeApiAdapter.js';
+
+function createLLMBackend() {
+  const backend = process.env.LLM_BACKEND || 'ollama-hosted';
+  switch (backend) {
+    case 'claude-api':
+      return new ClaudeApiAdapter();
+    case 'ollama-local':
+      return new OllamaLocalAdapter();
+    case 'ollama-hosted':
+    default:
+      return new OllamaHostedAdapter();
+  }
+}
+
+export class JobPackService {
+  constructor() {
+    this.llm = createLLMBackend();
+  }
+
+  async generateJobPack(jobDescription, candidateProfile) {
+    // Create a draft record before generation
+    const jobKey = `job_${Date.now()}`;
+    const draftId = createDraft({
+      jobKey,
+      label: `Draft ${new Date().toLocaleString()}`,
+      jobDescription,
+      candidateProfile,
+    });
+
+    // Run all three pipelines
+    const baseCtx = { jobDescription, candidateProfile };
+
+    const [resumeCtx, coverLetterCtx, infographicCtx] = await Promise.all([
+      pipeline(
+        [buildPrompt('resume'), callLLM(this.llm), parseResponse('resume')],
+        baseCtx
+      ),
+      pipeline(
+        [buildPrompt('coverLetter'), callLLM(this.llm), parseResponse('coverLetter')],
+        baseCtx
+      ),
+      pipeline(
+        [buildPrompt('infographic'), callLLM(this.llm), parseResponse('infographic')],
+        baseCtx
+      ),
+    ]);
+
+    // Persist artifacts to DB
+    updateDraftArtifacts(draftId, {
+      resumeText: resumeCtx.parsed,
+      coverLetterText: coverLetterCtx.parsed,
+      infographicData: infographicCtx.parsed,
+    });
+
+    return { draftId };
+  }
+}

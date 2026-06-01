@@ -1,0 +1,25 @@
+import { LLMBackend } from './LLMBackend.js';
+
+// Strategy: calls a locally-running Ollama instance (no auth required)
+export class OllamaLocalAdapter extends LLMBackend {
+  constructor() {
+    super();
+    this.apiUrl = process.env.OLLAMA_LOCAL_URL || 'http://localhost:11434/api/generate';
+    this.model = process.env.OLLAMA_MODEL || 'llama3';
+  }
+
+  async generate(prompt) {
+    const response = await fetch(this.apiUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: this.model, prompt, stream: false }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Ollama local request failed: ${response.status} ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    return data.response ?? data.message?.content ?? '';
+  }
+}

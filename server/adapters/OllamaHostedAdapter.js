@@ -1,0 +1,29 @@
+import { LLMBackend } from './LLMBackend.js';
+
+// Strategy: calls the class-hosted Ollama endpoint with API key auth
+export class OllamaHostedAdapter extends LLMBackend {
+  constructor() {
+    super();
+    this.apiUrl = process.env.OLLAMA_API_URL;
+    this.apiKey = process.env.OLLAMA_API_KEY;
+    this.model = process.env.OLLAMA_MODEL || 'gpt-oss:120b';
+  }
+
+  async generate(prompt) {
+    const response = await fetch(this.apiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${this.apiKey}`,
+      },
+      body: JSON.stringify({ model: this.model, prompt, stream: false }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Ollama hosted request failed: ${response.status} ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    return data.response ?? data.message?.content ?? '';
+  }
+}

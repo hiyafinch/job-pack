@@ -1,0 +1,72 @@
+// Uses Node 22+ built-in sqlite (node:sqlite) — no native compilation needed
+import { DatabaseSync } from 'node:sqlite';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const DB_PATH = path.join(__dirname, '../../jobpack.db');
+
+let db;
+
+export function getDb() {
+  if (!db) {
+    db = new DatabaseSync(DB_PATH);
+    initSchema(db);
+  }
+  return db;
+}
+
+function initSchema(db) {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS drafts (
+      id        INTEGER PRIMARY KEY AUTOINCREMENT,
+      job_key   TEXT NOT NULL,
+      label     TEXT NOT NULL DEFAULT 'Draft',
+      job_description  TEXT NOT NULL,
+      candidate_profile TEXT NOT NULL,
+      resume_text      TEXT,
+      cover_letter_text TEXT,
+      infographic_data TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+  `);
+}
+
+export function createDraft({ jobKey, label, jobDescription, candidateProfile }) {
+  const db = getDb();
+  const stmt = db.prepare(`
+    INSERT INTO drafts (job_key, label, job_description, candidate_profile)
+    VALUES (?, ?, ?, ?)
+  `);
+  const result = stmt.run(jobKey, label, jobDescription, candidateProfile);
+  return Number(result.lastInsertRowid);
+}
+
+export function updateDraftArtifacts(id, { resumeText, coverLetterText, infographicData }) {
+  getDb().prepare(`
+    UPDATE drafts
+    SET resume_text = ?, cover_letter_text = ?, infographic_data = ?,
+        updated_at = datetime('now')
+    WHERE id = ?
+  `).run(resumeText, coverLetterText, JSON.stringify(infographicData), id);
+}
+
+export function saveDraftEdits(id, { label, resumeText, coverLetterText }) {
+  getDb().prepare(`
+    UPDATE drafts
+    SET label = ?, resume_text = ?, cover_letter_text = ?,
+        updated_at = datetime('now')
+    WHERE id = ?
+  `).run(label ?? 'Draft', resumeText, coverLetterText, id);
+}
+
+export function getDraft(id) {
+  return getDb().prepare('SELECT * FROM drafts WHERE id = ?').get(id);
+}
+
+export function listDrafts() {
+  return getDb()
+    .prepare('SELECT id, job_key, label, created_at, updated_at FROM drafts ORDER BY updated_at DESC')
+    .all();
+}

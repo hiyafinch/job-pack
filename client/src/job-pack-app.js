@@ -1,0 +1,242 @@
+import { LitElement, html, css } from 'lit';
+
+class JobPackApp extends LitElement {
+  static properties = {
+    jobDescription: { type: String },
+    candidateProfile: { type: String },
+    drafts: { type: Array },
+    currentDraft: { type: Object },
+    status: { type: String },
+    loading: { type: Boolean },
+    activeTab: { type: String },
+  };
+
+  static styles = css`
+    :host { display: block; max-width: 1100px; margin: 0 auto; padding: 24px; }
+    h1 { color: #1a202c; font-size: 2rem; margin-bottom: 8px; }
+    .subtitle { color: #718096; margin-bottom: 32px; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    textarea {
+      width: 100%; height: 180px; padding: 12px; border: 1px solid #cbd5e0;
+      border-radius: 8px; font-size: 14px; resize: vertical; box-sizing: border-box;
+    }
+    label { font-weight: 600; display: block; margin-bottom: 6px; color: #2d3748; }
+    button {
+      background: #4a90e2; color: white; border: none; padding: 12px 28px;
+      border-radius: 8px; font-size: 16px; cursor: pointer; margin-top: 12px;
+    }
+    button:disabled { background: #a0aec0; cursor: not-allowed; }
+    button.secondary { background: #718096; font-size: 14px; padding: 8px 18px; }
+    button.success { background: #38a169; }
+    .status { margin-top: 12px; padding: 10px 16px; border-radius: 6px; font-weight: 500; }
+    .status.ok { background: #c6f6d5; color: #22543d; }
+    .status.error { background: #fed7d7; color: #742a2a; }
+    .status.info { background: #bee3f8; color: #2a4365; }
+    .card {
+      background: white; border-radius: 12px; padding: 20px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08); margin-top: 24px;
+    }
+    .draft-list { list-style: none; padding: 0; margin: 0; }
+    .draft-list li {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 10px 0; border-bottom: 1px solid #e2e8f0;
+    }
+    .tabs { display: flex; gap: 4px; margin-bottom: 16px; }
+    .tab {
+      padding: 8px 18px; border-radius: 6px 6px 0 0; border: none;
+      background: #e2e8f0; color: #4a5568; cursor: pointer; font-size: 14px;
+    }
+    .tab.active { background: #4a90e2; color: white; }
+    pre { white-space: pre-wrap; font-size: 13px; background: #f7fafc; padding: 16px; border-radius: 6px; }
+    .artifact-actions { display: flex; gap: 8px; margin-top: 10px; }
+    .infographic-wrap { margin-top: 12px; }
+    .infographic-wrap svg { max-width: 100%; border-radius: 8px; }
+    .edit-area textarea { height: 300px; }
+  `;
+
+  constructor() {
+    super();
+    this.jobDescription = '';
+    this.candidateProfile = '';
+    this.drafts = [];
+    this.currentDraft = null;
+    this.status = '';
+    this.loading = false;
+    this.activeTab = 'resume';
+  }
+
+  connectedCallback() {
+    super.connectedCallback();
+    this.loadDrafts();
+  }
+
+  async loadDrafts() {
+    const res = await fetch('/api/drafts');
+    this.drafts = await res.json();
+  }
+
+  async generate() {
+    if (!this.jobDescription.trim() || !this.candidateProfile.trim()) {
+      this.status = 'error:Please fill in both fields.';
+      return;
+    }
+    this.loading = true;
+    this.status = 'info:Generating your job pack — this may take 30–60 seconds...';
+    try {
+      const res = await fetch('/api/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          jobDescription: this.jobDescription,
+          candidateProfile: this.candidateProfile,
+        }),
+      });
+      const { draftId, error } = await res.json();
+      if (error) throw new Error(error);
+      this.status = 'ok:Done! Draft #' + draftId + ' created.';
+      await this.loadDrafts();
+      await this.openDraft(draftId);
+    } catch (e) {
+      this.status = 'error:' + e.message;
+    } finally {
+      this.loading = false;
+    }
+  }
+
+  async openDraft(id) {
+    const res = await fetch(`/api/drafts/${id}`);
+    this.currentDraft = await res.json();
+    this.activeTab = 'resume';
+  }
+
+  async saveDraft() {
+    const d = this.currentDraft;
+    await fetch(`/api/drafts/${d.id}/save`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        label: d.label,
+        resumeText: d.resume_text,
+        coverLetterText: d.cover_letter_text,
+      }),
+    });
+    this.status = 'ok:Draft saved.';
+    await this.loadDrafts();
+  }
+
+  setTab(tab) { this.activeTab = tab; }
+
+  renderStatus() {
+    if (!this.status) return html``;
+    const [type, msg] = this.status.split(/:(.+)/);
+    return html`<div class="status ${type}">${msg}</div>`;
+  }
+
+  renderDraftViewer() {
+    if (!this.currentDraft) return html``;
+    const d = this.currentDraft;
+    return html`
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <h2 style="margin:0">
+            <input .value="${d.label}" @input="${e => this.currentDraft = { ...d, label: e.target.value }}"
+              style="border:none;font-size:1.2rem;font-weight:700;color:#1a202c;background:transparent;outline:none;width:300px"/>
+          </h2>
+          <div>
+            <button class="success" @click="${this.saveDraft}">Save Edits</button>
+          </div>
+        </div>
+
+        <div class="tabs" style="margin-top:16px">
+          ${['resume','coverLetter','infographic'].map(tab => html`
+            <button class="tab ${this.activeTab === tab ? 'active' : ''}"
+              @click="${() => this.setTab(tab)}">
+              ${tab === 'resume' ? 'Resume' : tab === 'coverLetter' ? 'Cover Letter' : 'Infographic'}
+            </button>
+          `)}
+        </div>
+
+        ${this.activeTab === 'resume' ? html`
+          <div class="edit-area">
+            <textarea .value="${d.resume_text || ''}"
+              @input="${e => this.currentDraft = { ...d, resume_text: e.target.value }}"></textarea>
+          </div>
+          <div class="artifact-actions">
+            <a href="/api/drafts/${d.id}/resume.pdf" target="_blank">
+              <button class="secondary">Download PDF</button>
+            </a>
+          </div>
+        ` : ''}
+
+        ${this.activeTab === 'coverLetter' ? html`
+          <div class="edit-area">
+            <textarea .value="${d.cover_letter_text || ''}"
+              @input="${e => this.currentDraft = { ...d, cover_letter_text: e.target.value }}"></textarea>
+          </div>
+          <div class="artifact-actions">
+            <a href="/api/drafts/${d.id}/coverletter.pdf" target="_blank">
+              <button class="secondary">Download PDF</button>
+            </a>
+          </div>
+        ` : ''}
+
+        ${this.activeTab === 'infographic' ? html`
+          <div class="infographic-wrap">
+            <img src="/api/drafts/${d.id}/infographic.svg" alt="Company Fit Infographic"
+              style="max-width:100%;border-radius:8px;border:1px solid #e2e8f0"/>
+          </div>
+          <div class="artifact-actions">
+            <a href="/api/drafts/${d.id}/infographic.svg" download="infographic-${d.id}.svg">
+              <button class="secondary">Download SVG</button>
+            </a>
+          </div>
+        ` : ''}
+      </div>
+    `;
+  }
+
+  render() {
+    return html`
+      <h1>Job Pack</h1>
+      <p class="subtitle">Paste a job description and your profile to generate a tailored resume, cover letter, and company-fit infographic.</p>
+
+      <div class="grid">
+        <div>
+          <label>Job Description</label>
+          <textarea placeholder="Paste the job posting here..."
+            .value="${this.jobDescription}"
+            @input="${e => this.jobDescription = e.target.value}"></textarea>
+        </div>
+        <div>
+          <label>Your Candidate Profile</label>
+          <textarea placeholder="Paste your bio, experience, skills, education..."
+            .value="${this.candidateProfile}"
+            @input="${e => this.candidateProfile = e.target.value}"></textarea>
+        </div>
+      </div>
+
+      <button ?disabled="${this.loading}" @click="${this.generate}">
+        ${this.loading ? 'Generating…' : 'Generate Job Pack'}
+      </button>
+
+      ${this.renderStatus()}
+      ${this.renderDraftViewer()}
+
+      ${this.drafts.length > 0 ? html`
+        <div class="card">
+          <h3 style="margin-top:0">Saved Drafts</h3>
+          <ul class="draft-list">
+            ${this.drafts.map(d => html`
+              <li>
+                <span><strong>${d.label}</strong> — ${d.updated_at}</span>
+                <button class="secondary" @click="${() => this.openDraft(d.id)}">Open</button>
+              </li>
+            `)}
+          </ul>
+        </div>
+      ` : ''}
+    `;
+  }
+}
+
+customElements.define('job-pack-app', JobPackApp);
