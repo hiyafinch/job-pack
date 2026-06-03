@@ -6,7 +6,8 @@
   "main": "server/index.js",
   "scripts": {
     "start": "node --experimental-sqlite server/index.js",
-    "dev": "node --experimental-sqlite --watch server/index.js"
+    "dev": "node --experimental-sqlite --watch server/index.js",
+    "test": "node --experimental-sqlite --test tests/**/*.test.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.30.0",

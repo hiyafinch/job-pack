@@ -6,7 +6,10 @@
       "Bash(node --experimental-sqlite server/index.js)",
       "Bash(curl -s http://localhost:3000/api/drafts)",
       "Bash(kill %1)",
-      "Bash(node --experimental-sqlite --input-type=module)"
+      "Bash(node --experimental-sqlite --input-type=module)",
+      "Bash(node --experimental-sqlite --test tests/generators.test.js)",
+      "Bash(node --experimental-sqlite --test tests/api.test.js)",
+      "Bash(npm test *)"
     ]
   }
 }
