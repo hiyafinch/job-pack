@@ -80,7 +80,7 @@ class JobPackApp extends LitElement {
   }
 
   async loadDrafts() {
-    const res = await fetch('/api/drafts');
+    const res = await fetch('https://job-pack-tbnl.onrender.com/api/drafts');
     this.drafts = await res.json();
   }
 
@@ -92,7 +92,7 @@ class JobPackApp extends LitElement {
     this.loading = true;
     this.status = 'info:Generating your job pack — this may take 30–60 seconds...';
     try {
-      const res = await fetch('/api/generate', {
+      const res = await fetch('https://job-pack-tbnl.onrender.com/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -113,14 +113,14 @@ class JobPackApp extends LitElement {
   }
 
   async openDraft(id) {
-    const res = await fetch(`/api/drafts/${id}`);
+    const res = await fetch(`https://job-pack-tbnl.onrender.com/api/drafts/${id}`);
     this.currentDraft = await res.json();
     this.activeTab = 'resume';
   }
 
   async saveDraft() {
     const d = this.currentDraft;
-    await fetch(`/api/drafts/${d.id}/save`, {
+    await fetch(`https://job-pack-tbnl.onrender.com/api/drafts/${d.id}/save`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -153,7 +153,7 @@ class JobPackApp extends LitElement {
 
   async _fetchCompare(ids) {
     try {
-      const res = await fetch(`/api/drafts/compare?ids=${ids.join(',')}`);
+      const res = await fetch(`https://job-pack-tbnl.onrender.com/api/drafts/compare?ids=${ids.join(',')}`);
       const { drafts, error } = await res.json();
       if (error) { this.status = 'error:' + error; return; }
       this.compareDrafts = drafts;
@@ -226,7 +226,7 @@ class JobPackApp extends LitElement {
               @input="${e => this.currentDraft = { ...d, resume_text: e.target.value }}"></textarea>
           </div>
           <div class="artifact-actions">
-            <a href="/api/drafts/${d.id}/resume.pdf" target="_blank">
+            <a href="https://job-pack-tbnl.onrender.com/api/drafts/${d.id}/resume.pdf" target="_blank">
               <button class="secondary">Download PDF</button>
             </a>
           </div>
@@ -238,7 +238,7 @@ class JobPackApp extends LitElement {
               @input="${e => this.currentDraft = { ...d, cover_letter_text: e.target.value }}"></textarea>
           </div>
           <div class="artifact-actions">
-            <a href="/api/drafts/${d.id}/coverletter.pdf" target="_blank">
+            <a href="https://job-pack-tbnl.onrender.com/api/drafts/${d.id}/coverletter.pdf" target="_blank">
               <button class="secondary">Download PDF</button>
             </a>
           </div>
@@ -246,74 +246,4 @@ class JobPackApp extends LitElement {
 
         ${this.activeTab === 'infographic' ? html`
           <div class="infographic-wrap">
-            <img src="/api/drafts/${d.id}/infographic.svg" alt="Company Fit Infographic"
-              style="max-width:100%;border-radius:8px;border:1px solid #e2e8f0"/>
-          </div>
-          <div class="artifact-actions">
-            <a href="/api/drafts/${d.id}/infographic.svg" download="infographic-${d.id}.svg">
-              <button class="secondary">Download SVG</button>
-            </a>
-          </div>
-        ` : ''}
-      </div>
-    `;
-  }
-
-  render() {
-    return html`
-      <h1>Job Pack</h1>
-      <p class="subtitle">Paste a job description and your profile to generate a tailored resume, cover letter, and company-fit infographic.</p>
-
-      <div class="grid">
-        <div>
-          <label>Job Description</label>
-          <textarea placeholder="Paste the job posting here..."
-            .value="${this.jobDescription}"
-            @input="${e => this.jobDescription = e.target.value}"></textarea>
-        </div>
-        <div>
-          <label>Your Candidate Profile</label>
-          <textarea placeholder="Paste your bio, experience, skills, education..."
-            .value="${this.candidateProfile}"
-            @input="${e => this.candidateProfile = e.target.value}"></textarea>
-        </div>
-      </div>
-
-      <button ?disabled="${this.loading}" @click="${this.generate}">
-        ${this.loading ? 'Generating…' : 'Generate Job Pack'}
-      </button>
-
-      ${this.renderStatus()}
-      ${this.renderDraftViewer()}
-
-      ${this.drafts.length > 0 ? html`
-        <div class="card">
-          <h3 style="margin-top:0">Saved Drafts</h3>
-          <ul class="draft-list">
-            ${this.drafts.map(d => html`
-              <li>
-                <span><strong>${d.label}</strong> — ${d.updated_at}</span>
-                <div style="display:flex;gap:8px">
-                  <button class="secondary" @click="${() => this.openDraft(d.id)}">Open</button>
-                  ${this.drafts.length >= 2 ? html`
-                    <button
-                      class="secondary ${this.compareIds.includes(d.id) ? 'compare-active' : ''}"
-                      @click="${() => this.toggleCompare(d.id)}">
-                      ${this.compareIds.includes(d.id) ? 'Selected' : 'Compare'}
-                    </button>
-                  ` : ''}
-                </div>
-              </li>
-            `)}
-          </ul>
-          ${this.compareIds.length === 1 ? html`
-            <p style="margin:12px 0 0;color:#718096;font-size:14px">Select one more draft to compare.</p>
-          ` : ''}
-        </div>
-        ${this.renderCompareView()}
-      ` : ''}
-    `;
-  }
-}
-
-customElements.define('job-pack-app', JobPackApp);
+            <img src="https://job-pack-tbnl.onrender.com/api/dr

@@ -11,6 +11,15 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = new Koa();
 const PORT = process.env.PORT || 3000;
 
+// CORS — allow Netlify frontend and local dev to call the API
+app.use(async (ctx, next) => {
+  ctx.set('Access-Control-Allow-Origin', '*');
+  ctx.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  ctx.set('Access-Control-Allow-Headers', 'Content-Type');
+  if (ctx.method === 'OPTIONS') { ctx.status = 204; return; }
+  await next();
+});
+
 app.use(koaBody());
 app.use(apiRouter.routes());
 app.use(apiRouter.allowedMethods());
