@@ -26,6 +26,30 @@ router.get('/drafts', async (ctx) => {
   ctx.body = listDrafts();
 });
 
+// GET /api/drafts/compare?ids=id1,id2 — return two drafts side by side
+// Must be registered before /drafts/:id so "compare" is not captured as a param.
+router.get('/drafts/compare', async (ctx) => {
+  const idsParam = ctx.query.ids;
+  if (!idsParam) {
+    ctx.status = 400;
+    ctx.body = { error: 'ids query param required (e.g. ?ids=1,2)' };
+    return;
+  }
+  const ids = idsParam.split(',').map(Number).filter(n => Number.isInteger(n) && n > 0);
+  if (ids.length !== 2) {
+    ctx.status = 400;
+    ctx.body = { error: 'Exactly two numeric ids required' };
+    return;
+  }
+  const drafts = ids.map(id => getDraft(id));
+  if (drafts.some(d => !d)) {
+    ctx.status = 404;
+    ctx.body = { error: 'One or more drafts not found' };
+    return;
+  }
+  ctx.body = { drafts };
+});
+
 // GET /api/drafts/:id — get one draft
 router.get('/drafts/:id', async (ctx) => {
   const draft = getDraft(Number(ctx.params.id));

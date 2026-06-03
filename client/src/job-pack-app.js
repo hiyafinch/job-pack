@@ -10,6 +10,8 @@ class JobPackApp extends LitElement {
     status: { type: String },
     loading: { type: Boolean },
     activeTab: { type: String },
+    compareIds: { type: Array },
+    compareDrafts: { type: Array },
   };
 
   static styles = css`
@@ -53,6 +55,10 @@ class JobPackApp extends LitElement {
     .infographic-wrap { margin-top: 12px; }
     .infographic-wrap svg { max-width: 100%; border-radius: 8px; }
     .edit-area textarea { height: 300px; }
+    .compare-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .compare-col h3 { margin: 0 0 8px 0; color: #2d3748; font-size: 1rem; }
+    .compare-col pre { height: 400px; overflow-y: auto; }
+    button.compare-active { background: #ed8936; }
   `;
 
   constructor() {
@@ -64,6 +70,8 @@ class JobPackApp extends LitElement {
     this.status = '';
     this.loading = false;
     this.activeTab = 'resume';
+    this.compareIds = [];
+    this.compareDrafts = [];
   }
 
   connectedCallback() {
@@ -126,6 +134,61 @@ class JobPackApp extends LitElement {
   }
 
   setTab(tab) { this.activeTab = tab; }
+
+  toggleCompare(id) {
+    const ids = this.compareIds;
+    if (ids.includes(id)) {
+      this.compareIds = ids.filter(i => i !== id);
+      this.compareDrafts = [];
+      return;
+    }
+    const next = [...ids, id].slice(-2);
+    this.compareIds = next;
+    if (next.length === 2) {
+      this._fetchCompare(next);
+    } else {
+      this.compareDrafts = [];
+    }
+  }
+
+  async _fetchCompare(ids) {
+    try {
+      const res = await fetch(`/api/drafts/compare?ids=${ids.join(',')}`);
+      const { drafts, error } = await res.json();
+      if (error) { this.status = 'error:' + error; return; }
+      this.compareDrafts = drafts;
+    } catch (e) {
+      this.status = 'error:' + e.message;
+    }
+  }
+
+  clearCompare() {
+    this.compareIds = [];
+    this.compareDrafts = [];
+  }
+
+  renderCompareView() {
+    if (this.compareDrafts.length !== 2) return html``;
+    const [a, b] = this.compareDrafts;
+    return html`
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+          <h2 style="margin:0">Compare Drafts</h2>
+          <button class="secondary" @click="${this.clearCompare}">Clear Compare</button>
+        </div>
+        <div class="compare-grid">
+          <div class="compare-col">
+            <h3>${a.label}</h3>
+            <pre>${a.resume_text || '(no resume text)'}</pre>
+          </div>
+          <div class="compare-col">
+            <h3>${b.label}</h3>
+            <pre>${b.resume_text || '(no resume text)'}</pre>
+          </div>
+        </div>
+      </div>
+    `;
+  }
 
   renderStatus() {
     if (!this.status) return html``;
@@ -230,11 +293,24 @@ class JobPackApp extends LitElement {
             ${this.drafts.map(d => html`
               <li>
                 <span><strong>${d.label}</strong> — ${d.updated_at}</span>
-                <button class="secondary" @click="${() => this.openDraft(d.id)}">Open</button>
+                <div style="display:flex;gap:8px">
+                  <button class="secondary" @click="${() => this.openDraft(d.id)}">Open</button>
+                  ${this.drafts.length >= 2 ? html`
+                    <button
+                      class="secondary ${this.compareIds.includes(d.id) ? 'compare-active' : ''}"
+                      @click="${() => this.toggleCompare(d.id)}">
+                      ${this.compareIds.includes(d.id) ? 'Selected' : 'Compare'}
+                    </button>
+                  ` : ''}
+                </div>
               </li>
             `)}
           </ul>
+          ${this.compareIds.length === 1 ? html`
+            <p style="margin:12px 0 0;color:#718096;font-size:14px">Select one more draft to compare.</p>
+          ` : ''}
         </div>
+        ${this.renderCompareView()}
       ` : ''}
     `;
   }
