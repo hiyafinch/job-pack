@@ -4,6 +4,12 @@
 
 https://youtu.be/dQjsK1q4VqQ
 
+## Summary
+
+The presentation opened with an overview of what Job Pack does and a live demo of the fully deployed application. Starting from the Netlify frontend, a job description for a Senior Software Engineer role at Meridian AI and a candidate profile were pasted in and generated live. The resulting resume PDF, cover letter PDF, and company fit infographic were shown and downloaded. A second draft was generated to demonstrate the draft save and compare feature, showing two resumes side by side.
+
+The second half of the presentation covered the architecture and design patterns. The Strategy pattern was explained in the context of the swappable LLM backends, the Facade pattern in the context of the JobPackService, and the Pipes-and-Filters enterprise integration pattern in the context of the generation pipeline. The two Perfect Framework concerns addressed — secrets management and persistence — were explained with reference to the .env setup and SQLite draft storage. The presentation closed with the deployment overview covering Netlify for the frontend and Render for the backend.
+
 ## Topics Covered
 
 ### What the app does
