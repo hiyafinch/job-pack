@@ -246,4 +246,74 @@ class JobPackApp extends LitElement {
 
         ${this.activeTab === 'infographic' ? html`
           <div class="infographic-wrap">
-            <img src="https://job-pack-tbnl.onrender.com/api/dr
+            <img src="https://job-pack-tbnl.onrender.com/api/drafts/${d.id}/infographic.svg" alt="Company Fit Infographic"
+              style="max-width:100%;border-radius:8px;border:1px solid #e2e8f0"/>
+          </div>
+          <div class="artifact-actions">
+            <a href="https://job-pack-tbnl.onrender.com/api/drafts/${d.id}/infographic.svg" download="infographic-${d.id}.svg">
+              <button class="secondary">Download SVG</button>
+            </a>
+          </div>
+        ` : ''}
+      </div>
+    `;
+  }
+
+  render() {
+    return html`
+      <h1>Job Pack</h1>
+      <p class="subtitle">Paste a job description and your profile to generate a tailored resume, cover letter, and company-fit infographic.</p>
+
+      <div class="grid">
+        <div>
+          <label>Job Description</label>
+          <textarea placeholder="Paste the job posting here..."
+            .value="${this.jobDescription}"
+            @input="${e => this.jobDescription = e.target.value}"></textarea>
+        </div>
+        <div>
+          <label>Your Candidate Profile</label>
+          <textarea placeholder="Paste your bio, experience, skills, education..."
+            .value="${this.candidateProfile}"
+            @input="${e => this.candidateProfile = e.target.value}"></textarea>
+        </div>
+      </div>
+
+      <button ?disabled="${this.loading}" @click="${this.generate}">
+        ${this.loading ? 'Generating…' : 'Generate Job Pack'}
+      </button>
+
+      ${this.renderStatus()}
+      ${this.renderDraftViewer()}
+
+      ${this.drafts.length > 0 ? html`
+        <div class="card">
+          <h3 style="margin-top:0">Saved Drafts</h3>
+          <ul class="draft-list">
+            ${this.drafts.map(d => html`
+              <li>
+                <span><strong>${d.label}</strong> — ${d.updated_at}</span>
+                <div style="display:flex;gap:8px">
+                  <button class="secondary" @click="${() => this.openDraft(d.id)}">Open</button>
+                  ${this.drafts.length >= 2 ? html`
+                    <button
+                      class="secondary ${this.compareIds.includes(d.id) ? 'compare-active' : ''}"
+                      @click="${() => this.toggleCompare(d.id)}">
+                      ${this.compareIds.includes(d.id) ? 'Selected' : 'Compare'}
+                    </button>
+                  ` : ''}
+                </div>
+              </li>
+            `)}
+          </ul>
+          ${this.compareIds.length === 1 ? html`
+            <p style="margin:12px 0 0;color:#718096;font-size:14px">Select one more draft to compare.</p>
+          ` : ''}
+        </div>
+        ${this.renderCompareView()}
+      ` : ''}
+    `;
+  }
+}
+
+customElements.define('job-pack-app', JobPackApp);
